@@ -76,7 +76,7 @@ prompt: |-
   gh pr view <number> --repo <owner/name> --json headRefName --jq '.headRefName'
   ```
 
-  If the branch contains a Linear ticket identifier (e.g. `ENG-1234`), use `mcp__linear__get_issue` to fetch the ticket. Append the Linear link after the PR link using format `(<LINEAR_URL|TICKET_ID>)`.
+  If the branch contains a Linear ticket identifier (e.g. `ENG-1234`), use `mcp__linear-mcp__get_issue` to fetch the ticket. Append the Linear link after the PR link using format `(<LINEAR_URL|TICKET_ID>)`.
 
   ## Output format (default)
 
