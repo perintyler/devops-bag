@@ -41,15 +41,62 @@ prompt: |-
     --jq 'map(select(.isDraft))'
   ```
 
-  4. Still open (older PRs that are still in review — not created today):
+  4. Still open (older PRs you actually worked on today — not created today):
+
+  The list of open PRs is unbounded and mostly stale, so it MUST be filtered by same-day activity. Two filters are needed, because neither alone is correct.
+
+  First, narrow to PRs touched today at all:
 
   ```bash
-  gh search prs --author @me --state open --sort updated \
-    --json number,title,url,repository,isDraft,createdAt \
-    --jq 'map(select(.isDraft | not))'
+  gh search prs --author @me --state open --updated "$TODAY..$TOMORROW" \
+    --json number,title,url,repository,isDraft,createdAt,updatedAt
   ```
 
-  Filter out any PRs already captured by the "opened today" query (step 2) to avoid duplicates. These are PRs created before today that are still open and active.
+  Then confirm each candidate with **your own commits on its branch**, which is the only signal that means *you* worked on it:
+
+  ```bash
+  ME="$(gh api user --jq '.login')"   # NOT @me - see below
+  BRANCH="$(gh pr view <number> --repo <owner/name> --json headRefName --jq '.headRefName')"
+  gh api "repos/<owner/name>/commits?sha=$BRANCH&author=$ME&since=${TODAY}T00:00:00Z&until=${TOMORROW}T00:00:00Z" \
+    --jq 'length'
+  ```
+
+  Include the PR only when the count is greater than zero.
+
+  Adjust `since`/`until` to real local-day boundaries in UTC (e.g. EDT is UTC-4, so `${TODAY}T04:00:00Z..${TOMORROW}T04:00:00Z`). Using bare local dates as UTC silently shifts the window by the offset.
+
+  **Why both filters.** `updatedAt` is not "you worked on it" - it bumps on someone else's comment, a label change, or a bot, so it over-includes. It also under-includes: a PR whose commit landed via merge can keep an old `updatedAt` while you genuinely pushed to it today. The commit check is the authority; the `--updated` search is only a cheap way to avoid checking every open PR.
+
+  **`author=@me` does not work here.** The `@me` shorthand is a `gh search` feature; the commits REST API does not resolve it, and instead of erroring it returns an empty list. Hardcoding `@me` makes every PR look untouched and the report come back empty while appearing to work. Always resolve the login first with `gh api user --jq '.login'`.
+
+  Handle these cases explicitly rather than letting them pass silently:
+
+  - **Branch deleted (404 from the commits API).** Not evidence of no work. Fall back to `gh pr view <number> --json commits` and filter its commits by author and date; if that is also unavailable, list the PR and flag it as unverified.
+  - **A zero count from an errored call.** `--jq 'length'` prints nothing on error, which is easy to read as `0`. Treat empty/non-numeric output as an ERROR to surface, never as "no activity" - otherwise a broken token silently produces a clean-looking, empty report.
+
+  Reference implementation for this step:
+
+  ```bash
+  ME="$(gh api user --jq '.login')"
+  SINCE="${TODAY}T04:00:00Z"; UNTIL="${TOMORROW}T04:00:00Z"   # EDT (UTC-4)
+
+  gh search prs --author @me --state open --updated "$TODAY..$TOMORROW" \
+    --json number,title,url,repository,isDraft,createdAt \
+  | jq -r '.[] | "\(.number)\t\(.repository.nameWithOwner)\t\(.isDraft)\t\(.title)"' \
+  | while IFS=$'\t' read -r num repo draft title; do
+      br=$(gh pr view "$num" --repo "$repo" --json headRefName --jq '.headRefName' 2>/dev/null)
+      n=$(gh api "repos/$repo/commits?sha=$br&author=$ME&since=$SINCE&until=$UNTIL" --jq 'length' 2>/dev/null)
+      case "$n" in
+        ''|*[!0-9]*) echo "UNVERIFIED #$num $repo ($title)" >&2 ;;
+        0)           ;;                       # no work today - omit
+        *)           echo "$num|$repo|$draft|$title" ;;
+      esac
+    done
+  ```
+
+  **Sanity-check the filter before trusting a run.** Point the commit check at a PR you know you did not touch today and confirm it is excluded. A filter that excludes everything and a filter that is broken produce the same empty report.
+
+  Filter out any PRs already captured by the "opened today" query (step 2) to avoid duplicates.
 
   5. Shipped today and closed today (use `--closed` since `--merged` is unreliable):
 
@@ -114,6 +161,7 @@ prompt: |-
   ## Notes
 
   - Default scope is all repos the user can access.
+  - **Every bullet must be a PR the user actually worked on today.** Being open is not activity. Never list an open or draft PR without same-day evidence, and never fall back to "recent-looking" hand-picking when a filter misbehaves - fix the filter, or mark the entry UNVERIFIED.
   - "Shipped today (merged)" uses `--closed` filtered by `state == "merged"` and can include older PRs.
   - No section headers. Single flat list.
   - **Dedup**: A PR may appear in multiple result sets. Show it only once, using the most final state. Priority: merged > closed > open (today) > in-review > draft. For example, a same-day turnaround PR appears only as merged, and a PR created today never appears in the in-review list.
