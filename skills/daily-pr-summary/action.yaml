@@ -63,7 +63,7 @@ prompt: |-
 
   Include the PR only when the count is greater than zero.
 
-  Adjust `since`/`until` to real local-day boundaries in UTC (e.g. EDT is UTC-4, so `${TODAY}T04:00:00Z..${TOMORROW}T04:00:00Z`). Using bare local dates as UTC silently shifts the window by the offset.
+  `since`/`until` must be the local day's real boundaries expressed in UTC. Derive them (see the reference implementation below) rather than writing a literal offset: bare local dates are read as UTC, and a hardcoded offset goes stale at the DST change. Either way the window shifts by an hour or more, and the failure is quiet - a late-evening commit is attributed to the wrong day and its PR just disappears from the report.
 
   **Why both filters.** `updatedAt` is not "you worked on it" - it bumps on someone else's comment, a label change, or a bot, so it over-includes. It also under-includes: a PR whose commit landed via merge can keep an old `updatedAt` while you genuinely pushed to it today. The commit check is the authority; the `--updated` search is only a cheap way to avoid checking every open PR.
 
@@ -78,7 +78,19 @@ prompt: |-
 
   ```bash
   ME="$(gh api user --jq '.login')"
-  SINCE="${TODAY}T04:00:00Z"; UNTIL="${TOMORROW}T04:00:00Z"   # EDT (UTC-4)
+  # Local-day boundaries in UTC. Derived, not hardcoded: the offset changes
+  # with DST, and a stale offset silently shifts the window by an hour.
+  utc_midnight() {                     # local YYYY-MM-DD -> UTC instant
+    local secs
+    secs="$(date -j -f '%Y-%m-%d %H:%M:%S' "$1 00:00:00" +%s 2>/dev/null)" || return 1
+    case "$secs" in ''|*[!0-9]*) return 1 ;; esac
+    date -u -r "$secs" +%Y-%m-%dT%H:%M:%SZ
+  }
+  # Bail loudly. On failure the substitution would yield the epoch, and a
+  # "since 1970" window matches every commit ever - re-including the exact
+  # stale PRs this filter exists to exclude.
+  SINCE="$(utc_midnight "$TODAY")"    || { echo "cannot derive local day start" >&2; exit 1; }
+  UNTIL="$(utc_midnight "$TOMORROW")" || { echo "cannot derive local day end"   >&2; exit 1; }
 
   gh search prs --author @me --state open --updated "$TODAY..$TOMORROW" \
     --json number,title,url,repository,isDraft,createdAt \
