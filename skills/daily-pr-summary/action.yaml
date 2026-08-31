@@ -57,11 +57,13 @@ prompt: |-
   ```bash
   ME="$(gh api user --jq '.login')"   # NOT @me - see below
   BRANCH="$(gh pr view <number> --repo <owner/name> --json headRefName --jq '.headRefName')"
-  gh api "repos/<owner/name>/commits?sha=$BRANCH&author=$ME&since=${TODAY}T00:00:00Z&until=${TOMORROW}T00:00:00Z" \
-    --jq 'length'
+  gh api "repos/<owner/name>/commits?sha=$BRANCH&author=$ME&since=$SINCE&until=$UNTIL" \
+    --jq "[.[] | select(.commit.author.date >= \"$SINCE\" and .commit.author.date < \"$UNTIL\")] | length"
   ```
 
   Include the PR only when the count is greater than zero.
+
+  **Re-filter on author date; the API window is committer date.** `since`/`until` match the *committer* timestamp, which a rebase rewrites to now while the author timestamp keeps its original date. Trusting the raw `length` therefore resurrects any stale branch you rebased today: commits from weeks ago are counted as same-day work and the PR reads as verified. The `select()` above re-checks `.commit.author.date` against the same window, and is what makes the count mean "authored today".
 
   `since`/`until` must be the local day's real boundaries expressed in UTC. Derive them (see the reference implementation below) rather than writing a literal offset: bare local dates are read as UTC, and a hardcoded offset goes stale at the DST change. Either way the window shifts by an hour or more, and the failure is quiet - a late-evening commit is attributed to the wrong day and its PR just disappears from the report.
 
@@ -97,7 +99,10 @@ prompt: |-
   | jq -r '.[] | "\(.number)\t\(.repository.nameWithOwner)\t\(.isDraft)\t\(.title)"' \
   | while IFS=$'\t' read -r num repo draft title; do
       br=$(gh pr view "$num" --repo "$repo" --json headRefName --jq '.headRefName' 2>/dev/null)
-      n=$(gh api "repos/$repo/commits?sha=$br&author=$ME&since=$SINCE&until=$UNTIL" --jq 'length' 2>/dev/null)
+      # Re-filter on author date: the API's since/until match committer date,
+      # which a rebase rewrites to now - counting old commits as today's work.
+      n=$(gh api "repos/$repo/commits?sha=$br&author=$ME&since=$SINCE&until=$UNTIL" \
+            --jq "[.[] | select(.commit.author.date >= \"$SINCE\" and .commit.author.date < \"$UNTIL\")] | length" 2>/dev/null)
       case "$n" in
         ''|*[!0-9]*) echo "UNVERIFIED #$num $repo ($title)" >&2 ;;
         0)           ;;                       # no work today - omit
@@ -106,7 +111,7 @@ prompt: |-
     done
   ```
 
-  **Sanity-check the filter before trusting a run.** Point the commit check at a PR you know you did not touch today and confirm it is excluded. A filter that excludes everything and a filter that is broken produce the same empty report.
+  **Sanity-check the filter before trusting a run.** Point the commit check at a PR you know you did not touch today and confirm it is excluded. A filter that excludes everything and a filter that is broken produce the same empty report. Prefer a stale branch you *rebased* today if you have one - that is the case the committer-date bug slips through, and a plain untouched branch will not catch it. When a PR does survive the filter, print the matched commit dates (`.commit.author.date`) before trusting the count; dates that are not today mean the author-date filter is not being applied.
 
   Filter out any PRs already captured by the "opened today" query (step 2) to avoid duplicates.
 
