@@ -1,29 +1,27 @@
 # devops
 
-General repo operations: daily PR summaries and runtime environment audits.
+General repo operations: runtime environment audits.
 
 ## What it is
 
-A skills-only bag — no tools, no server, no store. Two skills:
+A skills-only bag — no tools, no server, no store. One skill:
 
-- **`daily-pr-summary`** reports today's PR activity (opened, in-review,
-  shipped, closed, drafts) through the GitHub CLI. Written for a Slack-ready
-  list, so it is the one to reach for when asked for a daily report.
 - **`describe-environment`** describes the runtime environment of a repo,
   service, or app: env vars, dependencies, infrastructure.
 
 Because it is skills-only, the auto-trait `devops` is what a session opts into,
-and the skills come with it.
-
-## Before you change anything here
-
-`daily-pr-summary` shells out to `gh`. If it reports nothing, check that `gh` is
-authenticated before concluding there was no PR activity — an unauthenticated
-`gh` and a quiet day look the same from the output.
+and the skill comes with it.
 
 ## Layout
 
 | path | what |
 |---|---|
 | `bag.yaml` | the manifest |
-| `skills/` | the two skills, each an `action.yaml` |
+| `skills/` | the one skill, an `action.yaml` |
+
+## History
+
+`daily-pr-summary` used to live here and moved to a work-specific bag. It
+resolves Linear tickets from branch names and posts to a particular Slack
+workspace, so it belongs alongside the repos it reports on. This bag stays
+general-purpose.
