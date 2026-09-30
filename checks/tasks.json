@@ -1,0 +1,205 @@
+{
+  "check:monorepo": [
+    {
+      "command": "node",
+      "args": [
+        "monorepo-policy.mjs"
+      ]
+    }
+  ],
+  "check:package-consumers": [
+    {
+      "command": "node",
+      "args": [
+        "package-consumers.mjs"
+      ]
+    }
+  ],
+  "check:bag-host-reach": [
+    {
+      "command": "node",
+      "args": [
+        "bag-host-reach.mjs"
+      ]
+    }
+  ],
+  "check:barry-home": [
+    {
+      "command": "node",
+      "args": [
+        "barry-home.mjs"
+      ]
+    },
+    {
+      "command": "tsx",
+      "args": [
+        "--test",
+        "barry-home-isolation.test.mjs"
+      ]
+    }
+  ],
+  "check:service-addresses": [
+    {
+      "command": "node",
+      "args": [
+        "service-addresses.mjs"
+      ]
+    },
+    {
+      "command": "node",
+      "args": [
+        "--test",
+        "service-addresses.test.mjs"
+      ]
+    }
+  ],
+  "check:vendor-neutral": [
+    {
+      "command": "node",
+      "args": [
+        "vendor-neutral.mjs"
+      ]
+    },
+    {
+      "command": "node",
+      "args": [
+        "--test",
+        "vendor-neutral.test.mjs"
+      ]
+    }
+  ],
+  "check:bag-data-dirs": [
+    {
+      "command": "node",
+      "args": [
+        "bag-data-dirs.mjs"
+      ]
+    },
+    {
+      "command": "node",
+      "args": [
+        "--test",
+        "bag-data-dirs.test.mjs"
+      ]
+    }
+  ],
+  "check:stale-paths": [
+    {
+      "command": "node",
+      "args": [
+        "stale-paths.mjs"
+      ]
+    }
+  ],
+  "check:identity-residue": [
+    {
+      "command": "node",
+      "args": [
+        "identity-residue.mjs"
+      ]
+    }
+  ],
+  "check:bound-vocabulary": [
+    {
+      "command": "node",
+      "args": [
+        "bound-vocabulary.mjs"
+      ]
+    }
+  ],
+  "check:doc-links": [
+    {
+      "command": "node",
+      "args": [
+        "doc-links.mjs"
+      ]
+    },
+    {
+      "command": "node",
+      "args": [
+        "--test",
+        "doc-links.test.mjs"
+      ]
+    }
+  ],
+  "check:workflow-triggers": [
+    {
+      "command": "node",
+      "args": [
+        "workflow-test-triggers.mjs"
+      ]
+    }
+  ],
+  "check:brewfile": [
+    {
+      "command": "node",
+      "args": [
+        "brewfile.mjs"
+      ]
+    }
+  ],
+  "test:ci:unit": [
+    {
+      "command": "node",
+      "args": [
+        "ci/run-unit-tests.mjs"
+      ]
+    }
+  ],
+  "lint:eslint:ci": [
+    {
+      "command": "pnpm",
+      "args": [
+        "exec",
+        "eslint",
+        ".",
+        "--max-warnings=0"
+      ]
+    },
+    {
+      "command": "node",
+      "args": [
+        "lint-checks.mjs"
+      ]
+    },
+    {
+      "command": "node",
+      "args": [
+        "--test",
+        "lint-config.test.mjs"
+      ]
+    }
+  ],
+  "security:dependencies": [
+    {
+      "command": "node",
+      "args": [
+        "security-audit.mjs"
+      ]
+    }
+  ],
+  "security:licenses": [
+    {
+      "command": "node",
+      "args": [
+        "license-audit.mjs"
+      ]
+    }
+  ],
+  "security:secrets": [
+    {
+      "command": "node",
+      "args": [
+        "credential-audit.mjs"
+      ]
+    }
+  ],
+  "install:osv": [
+    {
+      "command": "bash",
+      "args": [
+        "ci/install-osv-scanner"
+      ]
+    }
+  ]
+}

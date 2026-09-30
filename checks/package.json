@@ -1,0 +1,20 @@
+{
+  "name": "@barry-devops/checks",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "yaml": "2.8.3",
+    "esbuild": "0.28.1"
+  },
+  "files": [
+    "*.mjs",
+    "*.json",
+    "pnpm-lock.yaml",
+    "ci/",
+    "README.md"
+  ],
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node --test bag-data-dirs.test.mjs doc-links.test.mjs service-addresses.test.mjs vendor-neutral.test.mjs run.test.mjs"
+  }
+}
