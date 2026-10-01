@@ -286,12 +286,13 @@ async function checkDocCitations() {
  * importing file. A `.js` specifier also accepts the `.ts`/`.mts` source, which
  * is how NodeNext spells a TypeScript import.
  */
-const TOOLING_DIRS = ["ci", "sdk/cli/bin", "sdk/cli/scripts"];
+const TOOLING_DIRS = [".github/ci", "sdk/cli/bin", "sdk/cli/scripts"];
 async function checkToolingImports() {
   let checked = 0;
   const specifier = /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*)["'](\.{1,2}\/[^"']+)["']/g;
   const roots = [...TOOLING_DIRS.map((dir) => [repoRoot, dir]), [checksRoot, "."]];
   for (const [root, dir] of roots) {
+    const tracksImport = root === checksRoot ? trackedPaths(checksRoot) : tracked;
     await walkDir(root, dir, (name) => /\.(?:[cm]?[jt]s)$/.test(name), async (rel) => {
       const content = await readFile(path.join(root, rel), "utf8");
       content.split("\n").forEach((line, i) => {
@@ -303,7 +304,7 @@ async function checkToolingImports() {
           const target = path.resolve(path.dirname(path.join(root, rel)), value);
           const candidates = [target];
           if (/\.m?js$/.test(target)) candidates.push(target.replace(/\.js$/, ".ts").replace(/\.mjs$/, ".mts"));
-          if (!candidates.some((c) => tracked(c))) {
+          if (!candidates.some((c) => tracksImport(c))) {
             errors.push(`${rel}:${i + 1}: imports "${value}", which resolves to ${path.relative(repoRoot, target)} -- not tracked`);
           }
         }

@@ -43,7 +43,7 @@ const workflowDir = path.join(repoRoot, ".github", "workflows");
  */
 const REQUIRED_INPUTS = [
   "vitest.base.config.ts",
-  "ci/**",
+  ".github/ci/**",
   ".github/actions/setup/action.yml",
   "package.json",
   // Repo ROOT, not config/. The review that prompted this check cites it as

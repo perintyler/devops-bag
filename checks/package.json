@@ -15,6 +15,6 @@
   ],
   "version": "1.0.0",
   "scripts": {
-    "test": "node --test bag-data-dirs.test.mjs doc-links.test.mjs service-addresses.test.mjs vendor-neutral.test.mjs run.test.mjs"
+    "test": "node --test bag-data-dirs.test.mjs doc-links.test.mjs service-addresses.test.mjs vendor-neutral.test.mjs run.test.mjs stale-paths.test.mjs"
   }
 }
